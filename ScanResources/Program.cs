@@ -40,8 +40,49 @@ namespace FolderScannerApp
                     string directoryName = new DirectoryInfo(directory).Name;
 
                     // Check if the directory name is enclosed in square brackets
-                    if (!directoryName.StartsWith("[") || !directoryName.EndsWith("]"))
+                    if (directoryName.StartsWith("[") && directoryName.EndsWith("]"))
                     {
+                        // Get the resources inside the group folder
+                        string[] groupResources = Directory.GetDirectories(directory);
+
+                        // Display message for group folder detected
+                        Console.ForegroundColor = ConsoleColor.DarkYellow;
+                        Console.WriteLine($"Group Folder Detected: {directoryName} [{groupResources.Length} Resources Found]");
+                        Console.ForegroundColor = ConsoleColor.White;
+
+                        // Iterate through each resource in the group folder
+                        foreach (string resource in groupResources)
+                        {
+                            // Get the name of the resource
+                            string resourceName = new DirectoryInfo(resource).Name;
+                            Console.WriteLine($"- {directoryName}/{resourceName}");
+                            successfulCount++;
+
+                            // Create a new XML element for the resource
+                            XmlElement resourceElement = xmlDoc.CreateElement("resource");
+                            resourceElement.SetAttribute("src", $"{directoryName}/{resourceName}");
+
+                            try
+                            {
+                                // Append the new element to the resources node
+                                resourcesNode.AppendChild(resourceElement);
+                            }
+                            catch (Exception ex)
+                            {
+                                failedCount++;
+                                // Display error message in red if adding to XML fails
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine($"Failed to add {directoryName}/{resourceName} to XML: {ex.Message}");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Display message for regular folder detected
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine($"Successfully scanned: {directoryName}");
+                        successfulCount++;
+
                         // Create a new XML element for the resource
                         XmlElement resourceElement = xmlDoc.CreateElement("resource");
                         resourceElement.SetAttribute("src", directoryName);
@@ -50,24 +91,14 @@ namespace FolderScannerApp
                         {
                             // Append the new element to the resources node
                             resourcesNode.AppendChild(resourceElement);
-                            successfulCount++;
-                            // Display success message in green
-                            Console.ForegroundColor = ConsoleColor.Green;
-                            Console.WriteLine($"Successfully scanned: {directoryName}");
                         }
                         catch (Exception ex)
                         {
                             failedCount++;
                             // Display error message in red if adding to XML fails
                             Console.ForegroundColor = ConsoleColor.Red;
-                            Console.WriteLine($"Failed to scan {directoryName}: {ex.Message}");
+                            Console.WriteLine($"Failed to add {directoryName} to XML: {ex.Message}");
                         }
-                    }
-                    else
-                    {
-                        // Skip folders enclosed in square brackets (assumed as group folders)
-                        Console.ForegroundColor = ConsoleColor.Yellow;
-                        Console.WriteLine($"Skipping group folder: {directoryName}");
                     }
                 }
 
@@ -77,7 +108,6 @@ namespace FolderScannerApp
                 // Display the total count of successful scans
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine($"All {successfulCount} resources successfully scanned.");
-                Console.ForegroundColor = ConsoleColor.White;
             }
             else
             {
